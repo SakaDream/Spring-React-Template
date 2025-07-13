@@ -1,0 +1,27 @@
+server:
+  port: 8082
+spring:
+  application:
+    name: spring-gateway
+  security:
+    oauth2:
+      client:
+        registration:
+          spring:
+            provider: spring
+            client-id: client
+            client-secret: client-secret
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+        provider:
+            spring:
+                issuer-uri: http://localhost:8080
+logging:
+  level:
+    org:
+      springframework:
+        security: trace

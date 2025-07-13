@@ -1,0 +1,28 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: spring-authorization-server
+  security:
+    oauth2:
+      authorizationserver:
+        client:
+          oidc-client:
+            registration:
+              client-id: client
+              client-secret: '{noop}client-secret'
+              client-authentication-methods: client_secret_basic
+              authorization-grant-types:
+                - client_credentials
+                - authorization_code
+                - refresh_token
+              redirect-uris:
+                - "http://localhost:8082/login/oauth2/code/spring"
+              scopes:
+                - openid
+                - profile
+logging:
+  level:
+    org:
+      springframework:
+        security: trace
