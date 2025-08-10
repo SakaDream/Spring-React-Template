@@ -1,0 +1,271 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-postgres
+spec:
+  selector:
+    matchLabels:
+      app: auth-postgres
+  template:
+    metadata:
+      labels:
+        app: auth-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          env:
+            - name: POSTGRES_DB
+              value: auth-db
+            - name: POSTGRES_USER
+              value: auth-user
+            - name: POSTGRES_PASSWORD
+              value: V7p2kL9sQ4zT
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: auth-postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: auth-postgres-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-postgres
+spec:
+  selector:
+    app: auth-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-postgres
+spec:
+  selector:
+    matchLabels:
+      app: service-postgres
+  template:
+    metadata:
+      labels:
+        app: service-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          env:
+            - name: POSTGRES_DB
+              value: app-db
+            - name: POSTGRES_USER
+              value: app-user
+            - name: POSTGRES_PASSWORD
+              value: J8v2pLx9wQz1
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: service-postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: service-postgres-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-postgres
+spec:
+  selector:
+    app: service-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-redis
+spec:
+  selector:
+    matchLabels:
+      app: service-redis
+  template:
+    metadata:
+      labels:
+        app: service-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: service-redis-data
+              mountPath: /data
+      volumes:
+        - name: service-redis-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-redis
+spec:
+  selector:
+    app: service-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorization-server
+spec:
+  selector:
+    matchLabels:
+      app: authorization-server
+  template:
+    metadata:
+      labels:
+        app: authorization-server
+    spec:
+      containers:
+        - name: authorization-server
+          image: spring-authorization-server:latest
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://auth-postgres:5432/auth-db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: auth-user
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: V7p2kL9sQ4zT
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authorization-server
+spec:
+  selector:
+    app: authorization-server
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-template
+spec:
+  selector:
+    matchLabels:
+      app: service-template
+  template:
+    metadata:
+      labels:
+        app: service-template
+    spec:
+      containers:
+        - name: service-template
+          image: spring-boot-service-template:latest
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://service-postgres:5432/app-db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: app-user
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: J8v2pLx9wQz1
+            - name: SPRING_REDIS_HOST
+              value: service-redis
+            - name: SPRING_REDIS_PORT
+              value: "6379"
+            - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+              value: http://authorization-server:8080
+          ports:
+            - containerPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-template
+spec:
+  selector:
+    app: service-template
+  ports:
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-gateway
+spec:
+  selector:
+    matchLabels:
+      app: spring-gateway
+  template:
+    metadata:
+      labels:
+        app: spring-gateway
+    spec:
+      containers:
+        - name: spring-gateway
+          image: spring-gateway:latest
+          env:
+            - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_SPRING_ISSUER_URI
+              value: http://authorization-server:8080
+          ports:
+            - containerPort: 8082
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-gateway
+spec:
+  selector:
+    app: spring-gateway
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react-template
+spec:
+  selector:
+    matchLabels:
+      app: react-template
+  template:
+    metadata:
+      labels:
+        app: react-template
+    spec:
+      containers:
+        - name: react-template
+          image: react-template:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: react-template
+spec:
+  selector:
+    app: react-template
+  ports:
+    - port: 3000
+      targetPort: 80
+      protocol: TCP
